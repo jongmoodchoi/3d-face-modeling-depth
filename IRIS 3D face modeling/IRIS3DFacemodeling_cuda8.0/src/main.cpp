@@ -13,6 +13,7 @@
 
 #include "cudaMem.h"
 #include <device_launch_parameters.h>
+#include "primeSense.h"
 
 
 #include "3dregistration.h"
@@ -24,7 +25,7 @@
 #include "FaceDetector.h"
 #include "Voxel.h"
 #include "Modeling.h"
-#include "openNI_general.h"
+	
 #include "CudaMem.h"
 
 #include "poseEstimation.h"
@@ -39,7 +40,6 @@
 #include "facePoseEstimation.h"
 #include "FaceDetectLandmark.h"
 #include "IRIS_utils.h"
-
 
 std::vector<cv::Point2f> landmarkPts; //landmark
 extern void initExpr(const string configFIle);
@@ -171,95 +171,21 @@ int main(int argc, char **argv){
 
 	////////////////////////////////////////////////////////////////////////
 	//	OpenNI parameters
+	cameraModule* camMod=new cameraModule;
+	camMod->FunInitCameraParam();
+
 	int changedIndex=1;
 	short firstC=0;
-	Status rc = STATUS_OK;
+	const IrisRGB888Pixel* pImageMap;
+	const IrisDepthPixel* pDepthMap;
+	int fn_status = 0;
+	fn_status=camMod->FunInitOnlineMode(input_mode, argv[1]);
+	if (fn_status != 0) 
+		return fn_status;
+	fn_status=camMod->FunCreateDepthAndColorStreams();
+	if (fn_status != 0) 
+		return fn_status;
 
-	Device device;
-	VideoStream sdepth, scolor;
-	VideoFrameRef depthFrame, colorFrame;
-	const OniDepthPixel *pDepthMap;
-	const OniRGB888Pixel* pImageMap;
-	VideoMode videoMode;
-	
-	rc = OpenNI::initialize();
-	errorCheck(rc);
-
-	printf("After initialization:\n%s\n", openni::OpenNI::getExtendedError());
-
-	if (input_mode == MODE_ONLINE)
-		rc = device.open(ANY_DEVICE);
-	else
-		rc = device.open(argv[1]);
-	isRecord = true;
-	openni::Recorder recorder;
-	
-
-	if (rc != openni::STATUS_OK)
-	{
-		printf("SimpleViewer: Device open failed:\n%s\n", openni::OpenNI::getExtendedError());
-		openni::OpenNI::shutdown();
-		return 1;
-	}
-
-	errorCheck(rc);
-
-	//rc = device.CreateStream(ONI_SOURCE_DEPTH, sdepth);
-	rc = sdepth.create(device, SENSOR_DEPTH);
-	
-	if (rc == STATUS_OK) 	{
-
-		openni::VideoMode videoMode = sdepth.getVideoMode();
-		videoMode.setResolution(640, 480);
-		sdepth.setVideoMode(videoMode);
-
-		if (openni::STATUS_OK != rc)
-		{
-			cout << "error: depth fromat not supprted..." << endl;
-		}
-		rc = sdepth.start();
-		if (rc != STATUS_OK) 		{
-			printf("Couldn't start depth stream:\n%s\n", oniGetExtendedError());
-			sdepth.destroy();
-		}
-	} 	else 	{
-		printf("Couldn't find depth stream:\n%s\n", oniGetExtendedError());		
-	}
-
-	rc = scolor.create(device, SENSOR_COLOR);
-	if (rc == STATUS_OK) 	{ 
-
-		openni::VideoMode videoMode = scolor.getVideoMode();
-		videoMode.setResolution(640, 480);
-		scolor.setVideoMode(videoMode);
-
-		if (openni::STATUS_OK != rc)
-		{
-			cout << "error: depth fromat not supprted..." << endl;
-		}
-		rc = scolor.start(); 
-		if (rc != STATUS_OK) 		{
-			printf("Couldn't start color stream:\n%s\n", oniGetExtendedError());
-			scolor.destroy();
-		}
-	} 	else 	{
-		printf("Couldn't find color stream:\n%s\n", oniGetExtendedError());
-	}
-
-	if (!sdepth.isValid() && !scolor.isValid()) 	{
-		printf("No valid streams. Exiting\n");
-		return 2;
-	}
-
-	if (device.isImageRegistrationModeSupported(IMAGE_REGISTRATION_DEPTH_TO_COLOR)) {
-		rc = device.setImageRegistrationMode(IMAGE_REGISTRATION_DEPTH_TO_COLOR);
-		errorCheck(rc);
-	}
-
-	VideoStream** m_streams = new VideoStream*[2];
-	m_streams[0] = &sdepth;
-	m_streams[1] = &scolor;	
-	
 	////////////////////////////////////////////////////////////////////////
 	//	OpenCV parameters
 	IplImage *img	=	cvCreateImage( cvSize(XN_HR_X_RES ,XN_HR_Y_RES+Y_MAX), IPL_DEPTH_8U, CHANNELS );		// RGB image
@@ -436,40 +362,28 @@ int main(int argc, char **argv){
 
 	// Loop on frames
 	////////////////////////////////////////////////////////////////////////
-	if (isRecord && argc <= 1)
-	{
-		recorder.create("D:\\test.ini");
-		recorder.attach(sdepth, false);
-		recorder.attach(scolor, false);
-		recorder.start();
-	}
-
+	string recordFileName = "D:\\test.ini";
+	isRecord = true;
+	camMod->recordStreams(isRecord,argc, recordFileName);
 
 	while (true) { 
 		start = clock();
 	
 		//////////////////////////////////////////////////////////////////////
 		// Update the context
-		rc = openni::OpenNI::waitForAnyStream(m_streams, 2, &changedIndex);
-		if (rc != openni::STATUS_OK)
-		{
-			printf("Wait failed\n");
-			return 1;
-		}
-		errorCheck(rc);
-		rc = sdepth.readFrame(&depthFrame); 
-		errorCheck(rc);
-		rc = scolor.readFrame(&colorFrame); 
-		errorCheck(rc);
-
-		if (colorFrame.isValid())
+		fn_status=camMod->waitForStreamFuntion(&changedIndex);
+		if (fn_status != 0)
+			return fn_status;
+		camMod->readFrames();
+		if (camMod->isColorFrameValid())
 		{ 
-			pImageMap = (const OniRGB888Pixel*)colorFrame.getData();
+			pImageMap = (const IrisRGB888Pixel*)camMod->getColordata();
+		}
+		if (camMod->isDepthFrameValid())
+		{
+			pDepthMap = (const IrisDepthPixel*)camMod->getDepthdata();
 		}
 		
-
-		if (depthFrame.isValid())
-			pDepthMap = (const OniDepthPixel*)depthFrame.getData();
 
 		if (firstC<5) {
 			firstC++;
@@ -838,10 +752,7 @@ int main(int argc, char **argv){
 
 	}	
 
-	if (isRecord && argc <= 1)
-	{
-		recorder.stop();
-	}
+	camMod->stopStreamRecord(isRecord,argc);
 	cvDestroyWindow( "img" );
 	//cvDestroyWindow( "model depth" );
 	//cvDestroyWindow( "normal map" );
@@ -905,10 +816,10 @@ int main(int argc, char **argv){
 	cublasShutdown();
 	
 	//*******************************************************
-	//OpenNI::shutdown();
+
 	//*******************************************************
 
-	delete[] m_streams;
+	delete camMod;
 	delete[] h_X;
 	//delete[] h_Y;
 	delete[] h_Yfull;
