@@ -6,7 +6,8 @@
 //-----------------------------------------------------------------------------------------
 //      Copyright (c) 2012 University of Southern California.  All Rights Reserved.
 
-
+#pragma once
+#include "sensorDef.h"
 #define MODE_ONLINE 0
 #define MODE_OFFLINE 1
 
@@ -336,7 +337,12 @@
 
 
 #define EUCLIDEAN_DELTA 0.010f//0.15f
-#define GAUSSIAN_DELTA 3.0f
+#if CAMERA_TYPE	==REALSENSE_CAMERA
+	#define GAUSSIAN_DELTA 1.0f
+#else
+	#define GAUSSIAN_DELTA 3.0f
+#endif
+
 #define FILTER_RADIUS 3
 
 #ifndef MAX_ON_FACE

@@ -285,11 +285,18 @@ __global__ void d_updateUnwrappedImage(float *model, char *dData, int w, int h) 
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (x < w && y < h) {
+    if (x>=0 && y>=0 && x < w && y < h) {
 		int i1 = y*w+x,
 			i3 = 3*i1;
 
-		dData[i3] = ((model[i1]<1.0f) ? (char)(model[i1]*255.0f + 0.5f)  : 255);
+		float v = model[i1];
+		if (v < 0.0f)
+			v = 0;
+		if (v > 1.0f)
+			v = 1.0;
+		v = (v*255.0f + 0.5f);
+		v = v > 255.0?255 : v;
+		dData[i3] = (char)(v);
 		dData[i3+1] = dData[i3];
 		dData[i3+2] = dData[i3];
 	}
@@ -585,9 +592,8 @@ void updateModel(	float *h_face, float *d_face,
 	} else
 		(*wrongRegistration) = true;
 
-	
 	////synchronizeCUDA();
-	d_updateUnwrappedImage<<< gridSize, blockSize>>>(d_model, d_dData, THETA_MAX, Y_MAX ); 
+	d_updateUnwrappedImage<<< gridSize, blockSize>>>(d_model, d_dData, THETA_MAX,Y_MAX);
 
 	copyCUDAToHost_char(dData, MAX_IMG_INDEX_3);
 

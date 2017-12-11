@@ -10,11 +10,11 @@
 #include <cmath>
 #include <ctime>
 #include <list>
-
+#include<conio.h>
 #include "cudaMem.h"
 #include <device_launch_parameters.h>
+#include "sensorDef.h"
 #include "primeSense.h"
-
 
 #include "3dregistration.h"
 #include "engine.h"
@@ -25,7 +25,7 @@
 #include "FaceDetector.h"
 #include "Voxel.h"
 #include "Modeling.h"
-	
+
 #include "CudaMem.h"
 
 #include "poseEstimation.h"
@@ -60,7 +60,8 @@ int numberOfPoseEstimation;
 
 /*********************/
 /*		main function	*/
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
 
 	int input_mode = MODE_ONLINE;
 
@@ -349,7 +350,7 @@ int main(int argc, char **argv){
 	shape_predictor sp;
 	deserialize("shape_predictor_68_face_landmarks.dat") >> sp;
 	initExpr("../config/config.json");
-
+	//initExpr("config.json"); //use this if the above line gives error, place json in the working directory and uncomment this line and comment the above line
 
 {
 	////////////////////////////////////////////////////////////////////////
@@ -362,10 +363,14 @@ int main(int argc, char **argv){
 
 	// Loop on frames
 	////////////////////////////////////////////////////////////////////////
-	string recordFileName = "D:\\test.ini";
-	isRecord = true;
+	string recordFileName = "test.ini";
+	#if CAMERA_TYPE	==PRIMESENSE_CAMERA // as of now offline mode is supported for only for primesense
+		isRecord = true;
+	#else
+		isRecord = false;
+	#endif
 	camMod->recordStreams(isRecord,argc, recordFileName);
-
+	
 	while (true) { 
 		start = clock();
 	
@@ -409,9 +414,10 @@ int main(int argc, char **argv){
 		//////////////////////////////////////////////////////////////////////
 		displayDepthImage(d_pReal, d_dData, h_dData, d_validityMask, d_palette, isHeat, XN_VGA_X_RES, XN_VGA_Y_RES);
 		
+
 		displayImageMap(	h_rgbData,			// 
 							pImageMap);
-
+		
 		faceDetector.setValidityMask(h_validityMask);
 
 		// Detect the face
@@ -419,9 +425,9 @@ int main(int argc, char **argv){
 
 		// Find the box containing the mask values
 		maskBox = ( faceDetected ? faceDetector.getFaceBox() : nullBox);
-		 
+	
 		// Extract the points on the face
-		if (faceDetected) {
+			if (faceDetected) {
 			// Compute the normal map on the face		
 			// Extract the face
 		
@@ -608,7 +614,7 @@ int main(int argc, char **argv){
 			h_R[0]=h_R[4]=h_R[8]=1.0f;
 			stuck=0;
 		} 
-
+		
 		///////////////////////////////////////////////////////////////
 		// Update the model
 		if (updateModel && faceDetected)
@@ -622,7 +628,7 @@ int main(int argc, char **argv){
 						nb_frames++);
 		}
 		
-			
+		
 		///////////////////////////////////////////////////////////////
 		// Display the face tracker
 		if (displayFaceTracker) {
@@ -635,8 +641,8 @@ int main(int argc, char **argv){
 							cvPoint(faceDetector.getFaceBox().getRightX(),faceDetector.getFaceBox().getBottomY()),CV_RGB(255,0,0),2,8,0);
 			}
 		}
-
 		
+	
 		if (!wrongRegistration && nb_keyPoints>0 && saveForImprovement) 
 		{
 			// Save the frames 
@@ -702,7 +708,7 @@ int main(int argc, char **argv){
 		}
 
 		fclose(f);
-
+		
 		// End of the timer
 		end = clock();
 		cpuTime = (float)( end-start )/(float)( CLOCKS_PER_SEC ) ;
@@ -710,10 +716,10 @@ int main(int argc, char **argv){
 		
 		// Update the model image
 		updatingModel(displayDepth, depthM, imM, mdData);
-
+	
 		// Display the info
 		displayInfo(currentImg, saveFrames, displayDepth, fps);
-
+		
 		// Show the image
 		cvShowImage("img", currentImg);
 
@@ -749,7 +755,7 @@ int main(int argc, char **argv){
 			frame_index=0;
 			session++;
 		}
-
+		
 	}	
 
 	camMod->stopStreamRecord(isRecord,argc);
@@ -818,7 +824,7 @@ int main(int argc, char **argv){
 	//*******************************************************
 
 	//*******************************************************
-
+	
 	delete camMod;
 	delete[] h_X;
 	//delete[] h_Y;
@@ -866,4 +872,6 @@ int main(int argc, char **argv){
 	
 	return 0;
 }
+
+
 /**********************/

@@ -11,17 +11,17 @@
 #include "3dregistration.h"
 #include "FaceBox.h"
 #include "FaceDetector.h"
-
-
+#include "realSense.h"
+#include "primeSense.h"
 #include "Voxel.h"
 
 
-void errorCheck(Status nRetVal);
+
 
 
 
 void displayImageMap(char* out, 
-							const OniRGB888Pixel* pImageMap);
+							const IrisRGB888Pixel* pImageMap);
 
 
 void extractFace(	float *h_face,

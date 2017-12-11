@@ -8,18 +8,10 @@
 #include "3dregistration.h"
 #include "engine.h"
 #include "rply.h"
+#include "realSense.h"
 
 
 
-/********************************/
-/* Check that there is no error */
-void errorCheck(Status nRetVal) {
-	if (nRetVal != STATUS_OK) {
-		fprintf(stderr,"Failed: %s\n", oniGetExtendedError());
-		exit(1);
-	}
-}
-/*************************/
 
 
 
@@ -29,7 +21,7 @@ void errorCheck(Status nRetVal) {
 
 /*********************/
 /* Display image map */
-void displayImageMap(char *out, const OniRGB888Pixel* pImageMap) {
+void displayImageMap(char *out, const IrisRGB888Pixel* pImageMap) {
 	int i3=0;
 	for (int i=0; i<MAX_I_HR; i++) {
 		out[i3]		= (char)(pImageMap[i]).b;
@@ -68,8 +60,29 @@ void extractFace(	float *h_face,
 
 	int x=l, y=t, index=0;
 	*nb_pts=0;
+
+	if (t <= 0)
+		t = 0;
+	if (t >= XN_VGA_Y_RES)
+		t = XN_VGA_Y_RES - 1;
+	
+	if (l <= 0)
+		l = 0;
+	if (l >= XN_VGA_X_RES)
+		l = XN_VGA_X_RES-1;
+
+	if (b + CHIN_ADD >= XN_VGA_Y_RES)
+		b = XN_VGA_Y_RES - 1 - CHIN_ADD;
+	if (b + CHIN_ADD <= 0)
+		b = -CHIN_ADD;
+	
+	if (r >= XN_VGA_X_RES)
+		r = XN_VGA_X_RES - 1;
+	if (r <= 0)
+		r = 0;
+
 	int begin	= t*XN_VGA_X_RES + l;
-	int end		= (b+CHIN_ADD)*XN_VGA_X_RES + r;
+	int end = (b + CHIN_ADD)*XN_VGA_X_RES + r;
 
 	float	X=0.0f,		Y=0.0f,		Z=0.0f,
 			X_=0.0f,	Y_=0.0f,	Z_=0.0f;

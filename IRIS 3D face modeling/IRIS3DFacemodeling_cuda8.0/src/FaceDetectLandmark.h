@@ -8,7 +8,10 @@
 
 
 #include <dlib/opencv.h>
+#include "sensorDef.h"
+#if CAMERA_TYPE==PRIMESENSE_CAMERA
 #include <OpenNI.h>
+#endif
 #include <opencv2/highgui/highgui.hpp>
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/render_face_detections.h>
