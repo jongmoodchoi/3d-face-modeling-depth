@@ -8,3 +8,5 @@ Since each frame of the sensor is low-resolution and quite noisy, conventional m
 Applications may include gaming, entertainment, virtual try-on, avatar, biometrics, medical, etc. For instance, plastic surgeons can generate an accurate model of their patient and manipulate the mesh to simulate medical procedures and showcase the expected post-surgery results.
 
 Please change the sensor type in sensorDef.h before compiling to support RealSense or Primesense as camera type
+
+Copyright (c) 2017 University of Southern California. All Rights Reserved. 
